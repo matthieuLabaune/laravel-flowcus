@@ -20,6 +20,7 @@ class ProjectFactory extends Factory
         return [
             'user_id' => User::factory(),
             'name' => ucfirst($this->faker->words(rand(1, 2), true)),
+            'description' => $this->faker->optional()->paragraph(),
             'color' => $this->faker->hexColor(),
         ];
     }
