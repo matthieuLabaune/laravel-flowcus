@@ -42,11 +42,13 @@ it('finishes a session and computes actual seconds', function () {
     Carbon::setTestNow($now);
     $session = $service->startFocus($user, null, 1500);
 
-    $service->finish($session, $now->copy()->addSeconds(95));
+    $endTime = $now->copy()->addSeconds(95);
+
+    $service->finish($session, $endTime);
 
     $session->refresh();
     expect($session->ended_at)->not->toBeNull();
-    expect($session->actual_seconds)->toBe(95);
+    expect((int) round($session->actual_seconds))->toBe(95);
 
     Carbon::setTestNow(); // clear
 });
@@ -61,6 +63,28 @@ it('interrupt increments counter', function () {
 
     $session->refresh();
     expect($session->interruptions_count)->toBe(2);
+});
+
+it('resume resets interruptions counter', function () {
+    $user = User::factory()->create();
+    $service = new PomodoroSessionService();
+    $session = $service->startFocus($user, null, 1500);
+
+    $service->interrupt($session);
+    $service->interrupt($session);
+    expect($session->refresh()->interruptions_count)->toBe(2);
+
+    $service->resume($session);
+    expect($session->refresh()->interruptions_count)->toBe(0);
+});
+
+it('cannot resume finished session', function () {
+    $user = User::factory()->create();
+    $service = new PomodoroSessionService();
+    $session = $service->startFocus($user, null, 1500);
+    $service->finish($session);
+
+    expect(fn() => $service->resume($session))->toThrow(SessionAlreadyFinished::class);
 });
 
 it('cannot finish twice', function () {

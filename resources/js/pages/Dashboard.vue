@@ -7,20 +7,33 @@ import Card from '@/components/ui/card/Card.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import Skeleton from '@/components/ui/skeleton/Skeleton.vue'
-import { timeAgo } from '@/lib/time'
+import PomodoroRing from '@/components/pomodoro/PomodoroRing.vue'
 
 interface TaskDto { id:number; title:string; status:string; deadline_at?:string|null; completed_at?:string|null }
-interface SessionDto { id:number; task_id?:number|null; planned_seconds:number; actual_seconds:number; started_at:string }
+interface SessionDto {
+    id:number;
+    task_id?:number|null;
+    planned_seconds:number;
+    actual_seconds:number;
+    started_at:string;
+    interruptions_count?:number;
+    paused_seconds?:number;
+    last_paused_at?:string|null;
+}
 
 const page = usePage()
 const tasks = computed(() => (page.props as any).tasks as TaskDto[] || [])
-const activeSession = ref<SessionDto | null>(((page.props as any).activeSession as SessionDto) || null)
+const activeSession = computed(() => (page.props as any).activeSession as SessionDto | null || null)
 
 const plannedSeconds = ref(1500)
 const selectedTaskId = ref<number | null>(null)
 const starting = ref(false)
 const finishing = ref(false)
 const interrupting = ref(false)
+const resuming = ref(false)
+// Quick add task
+const newTaskTitle = ref('')
+const creatingTask = ref(false)
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -28,17 +41,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function startSession() {
     starting.value = true
-    router.post(
-        route('sessions.start'),
-        { planned_seconds: plannedSeconds.value, task_id: selectedTaskId.value },
-        {
-            preserveScroll: true,
-            onFinish: () => (starting.value = false),
-                    onSuccess: () => {
-                        activeSession.value = (usePage().props as any).activeSession ?? activeSession.value
-                    },
-        },
-    )
+    router.post(route('sessions.start'), { planned_seconds: plannedSeconds.value, task_id: selectedTaskId.value }, {
+        preserveScroll: true,
+        onFinish: () => (starting.value = false),
+    onSuccess: () => {},
+    })
 }
 
 function finishSession() {
@@ -47,22 +54,49 @@ function finishSession() {
     router.post(route('sessions.finish', activeSession.value.id), {}, {
         preserveScroll: true,
         onFinish: () => (finishing.value = false),
-        onSuccess: () => (activeSession.value = null),
+        onSuccess: () => {},
     })
 }
 
 function interruptSession() {
     if (!activeSession.value) return
     interrupting.value = true
-    router.post(route('sessions.interrupt', activeSession.value.id), {}, {
+    router.post(route('sessions.pause', activeSession.value.id), {}, {
         preserveScroll: true,
         onFinish: () => (interrupting.value = false),
+        onSuccess: () => {
+            // Force reload of dashboard data
+            router.reload({ only: ['activeSession'] })
+        }
     })
 }
 
-function humanElapsed() {
-    if (!activeSession.value) return ''
-    return timeAgo(activeSession.value.started_at)
+function resumeSession() {
+    if (!activeSession.value) return
+    resuming.value = true
+    router.post(route('sessions.resume', activeSession.value.id), {}, {
+        preserveScroll: true,
+        onFinish: () => (resuming.value = false),
+        onSuccess: () => {
+            // Force reload of dashboard data
+            router.reload({ only: ['activeSession'] })
+        }
+    })
+}
+
+
+function quickAddTask() {
+    if (!newTaskTitle.value.trim()) return
+    creatingTask.value = true
+    router.post(route('tasks.store'), { title: newTaskTitle.value }, {
+        preserveScroll: true,
+        onFinish: () => (creatingTask.value = false),
+        onSuccess: () => {
+            newTaskTitle.value = ''
+            // Reload only tasks on dashboard (simple: full visit to dashboard with partial reload later optimization)
+            router.visit(route('dashboard'), { preserveState: true, preserveScroll: true })
+        }
+    })
 }
 </script>
 
@@ -75,12 +109,21 @@ function humanElapsed() {
                 <Card class="md:col-span-1 p-5 gap-4">
                     <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Focus Session</h2>
                     <template v-if="activeSession">
-                        <div class="flex flex-col gap-2">
-                            <p class="text-lg font-semibold">Session en cours</p>
-                            <p class="text-sm text-muted-foreground">Démarrée il y a {{ humanElapsed() }}</p>
-                            <div class="flex gap-2 mt-2">
+                        <div class="flex flex-col gap-4 items-center">
+                            <PomodoroRing
+                              :started-at="activeSession.started_at"
+                              :planned-seconds="activeSession.planned_seconds"
+                              :is-paused="(activeSession.interruptions_count || 0) > 0"
+                              :paused-seconds="activeSession.paused_seconds || 0"
+                              :last-paused-at="activeSession.last_paused_at" />
+                            <div class="flex gap-2">
                                 <Button :disabled="finishing" variant="default" @click="finishSession">Terminer</Button>
-                                <Button :disabled="interrupting" variant="secondary" @click="interruptSession">Interruption</Button>
+                                <template v-if="(activeSession.interruptions_count || 0) > 0">
+                                    <Button :disabled="resuming" variant="outline" @click="resumeSession">Reprendre</Button>
+                                </template>
+                                <template v-else>
+                                    <Button :disabled="interrupting" variant="secondary" @click="interruptSession">Pause</Button>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -103,6 +146,10 @@ function humanElapsed() {
                     <div class="flex items-center justify-between">
                         <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Mes Tâches</h2>
                     </div>
+                    <form class="flex gap-2" @submit.prevent="quickAddTask">
+                        <Input v-model="newTaskTitle" placeholder="Nouvelle tâche rapide" class="flex-1" />
+                        <Button :disabled="creatingTask || !newTaskTitle.trim()" size="sm">Ajouter</Button>
+                    </form>
                     <ul class="divide-y divide-border rounded-md border">
                         <li v-for="t in tasks" :key="t.id" class="flex items-center justify-between gap-4 px-3 py-2">
                             <div class="flex flex-col">

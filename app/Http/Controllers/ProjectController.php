@@ -10,6 +10,7 @@ use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Http\Resources\ProjectResource;
 
 class ProjectController extends Controller
 {
@@ -29,7 +30,7 @@ class ProjectController extends Controller
             ]);
         }
 
-        return response()->json(['data' => $projects]);
+        return ProjectResource::collection($projects)->response();
     }
 
     public function store(StoreProjectRequest $request): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -45,7 +46,7 @@ class ProjectController extends Controller
             return redirect()->route('projects.index');
         }
 
-        return response()->json(['data' => $project], 201);
+        return (new ProjectResource($project))->response()->setStatusCode(201);
     }
 
     public function show(Request $request, Project $project): JsonResponse|\Inertia\Response
@@ -59,7 +60,7 @@ class ProjectController extends Controller
             ]);
         }
 
-        return response()->json(['data' => $project]);
+        return (new ProjectResource($project))->response();
     }
 
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -71,7 +72,7 @@ class ProjectController extends Controller
             return redirect()->route('projects.index');
         }
 
-        return response()->json(['data' => $project]);
+        return (new ProjectResource($project))->response();
     }
 
     public function destroy(Request $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -83,6 +84,6 @@ class ProjectController extends Controller
             return redirect()->route('projects.index');
         }
 
-        return response()->json(status: 204);
+        return response()->json(null, 204);
     }
 }

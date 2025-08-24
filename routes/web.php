@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\PomodoroSessionController;
 use App\Http\Controllers\TaskController;
@@ -11,7 +12,8 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', function () {
-    $user = auth()->user();
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
     $tasks = \App\Models\Task::query()
         ->forUser($user)
         ->latest('id')
@@ -21,7 +23,7 @@ Route::get('dashboard', function () {
         ->where('user_id', $user->id)
         ->whereNull('ended_at')
         ->latest('started_at')
-        ->first(['id', 'task_id', 'planned_seconds', 'actual_seconds', 'started_at']);
+        ->first(['id', 'task_id', 'planned_seconds', 'actual_seconds', 'started_at', 'interruptions_count', 'paused_seconds', 'last_paused_at']);
 
     return Inertia::render('Dashboard', [
         'tasks' => $tasks,
@@ -32,7 +34,9 @@ Route::get('dashboard', function () {
 Route::middleware(['auth'])->group(function () {
     Route::post('/sessions/start', [PomodoroSessionController::class, 'start'])->name('sessions.start');
     Route::post('/sessions/{session}/finish', [PomodoroSessionController::class, 'finish'])->name('sessions.finish');
-    Route::post('/sessions/{session}/interrupt', [PomodoroSessionController::class, 'interrupt'])->name('sessions.interrupt');
+    Route::post('/sessions/{session}/interrupt', [PomodoroSessionController::class, 'interrupt'])->name('sessions.interrupt'); // legacy name
+    Route::post('/sessions/{session}/pause', [PomodoroSessionController::class, 'interrupt'])->name('sessions.pause');
+    Route::post('/sessions/{session}/resume', [PomodoroSessionController::class, 'resume'])->name('sessions.resume');
 
     // Task CRUD
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');

@@ -20,6 +20,8 @@ class PomodoroSession extends Model
         'planned_seconds',
         'actual_seconds',
         'interruptions_count',
+        'paused_seconds',
+        'last_paused_at',
         'started_at',
         'ended_at',
     ];
@@ -28,6 +30,7 @@ class PomodoroSession extends Model
         'type' => SessionType::class,
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        'last_paused_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

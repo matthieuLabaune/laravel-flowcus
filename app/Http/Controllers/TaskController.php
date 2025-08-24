@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Http\Resources\TaskResource;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class TaskController extends Controller
@@ -42,11 +43,15 @@ class TaskController extends Controller
                     'per_page' => $tasks->perPage(),
                     'total' => $tasks->total(),
                 ],
+                'filters' => [
+                    'status' => $request->query('status'),
+                    'project_id' => $request->query('project_id'),
+                ],
             ]);
         }
 
         return response()->json([
-            'data' => $tasks->items(),
+            'data' => TaskResource::collection(collect($tasks->items()))->resolve(),
             'meta' => [
                 'current_page' => $tasks->currentPage(),
                 'last_page' => $tasks->lastPage(),
@@ -72,13 +77,13 @@ class TaskController extends Controller
             return redirect()->route('tasks.index');
         }
 
-        return response()->json(['data' => $task], 201);
+        return (new TaskResource($task))->response()->setStatusCode(201);
     }
 
     public function show(Request $request, Task $task): JsonResponse
     {
         $this->authorize('view', $task);
-        return response()->json(['data' => $task]);
+        return (new TaskResource($task))->response();
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -91,7 +96,7 @@ class TaskController extends Controller
             return redirect()->route('tasks.index');
         }
 
-        return response()->json(['data' => $task]);
+        return (new TaskResource($task))->response();
     }
 
     public function destroy(Request $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -103,7 +108,7 @@ class TaskController extends Controller
             return redirect()->route('tasks.index');
         }
 
-        return response()->json(status: 204);
+        return response()->json(null, 204);
     }
 
     public function complete(Request $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -119,6 +124,6 @@ class TaskController extends Controller
             return redirect()->route('tasks.index');
         }
 
-        return response()->json(['data' => $task]);
+        return (new TaskResource($task))->response();
     }
 }
