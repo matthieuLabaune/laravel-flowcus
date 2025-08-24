@@ -74,8 +74,9 @@ class TaskController extends Controller
             'status' => TaskStatus::Pending,
         ]);
 
+        // For Inertia requests, just return back (no redirect)
         if ($request->header('X-Inertia')) {
-            return redirect()->route('tasks.index');
+            return back();
         }
 
         return (new TaskResource($task))->response()->setStatusCode(201);
