@@ -23,14 +23,14 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'color', 'user_id']);
 
-        // If this is an Inertia visit, return the page component.
-        if ($request->header('X-Inertia')) {
-            return Inertia::render('Projects/Index', [
-                'projects' => $projects,
-            ]);
+        // Always return Inertia response for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return ProjectResource::collection($projects)->response();
         }
 
-        return ProjectResource::collection($projects)->response();
+        return Inertia::render('Projects/Index', [
+            'projects' => $projects,
+        ]);
     }
 
     public function store(StoreProjectRequest $request): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -55,8 +55,15 @@ class ProjectController extends Controller
         $project->loadCount('tasks');
 
         if ($request->header('X-Inertia')) {
+            // Load notes for this project
+            $projectNotes = $project->notes()
+                ->where('user_id', $request->user()->id)
+                ->latest()
+                ->get(['id', 'content', 'created_at', 'updated_at', 'noteable_type', 'noteable_id']);
+
             return Inertia::render('Projects/Show', [
                 'project' => $project,
+                'projectNotes' => $projectNotes,
             ]);
         }
 

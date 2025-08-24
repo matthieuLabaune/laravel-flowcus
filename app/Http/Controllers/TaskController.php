@@ -34,29 +34,30 @@ class TaskController extends Controller
         /** @var LengthAwarePaginator $tasks */
         $tasks = $query->paginate(20);
 
-        if ($request->header('X-Inertia')) {
-            return Inertia::render('Tasks/Index', [
-                'tasks' => $tasks->items(),
+        // Always return Inertia response for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return response()->json([
+                'data' => TaskResource::collection(collect($tasks->items()))->resolve(),
                 'meta' => [
                     'current_page' => $tasks->currentPage(),
                     'last_page' => $tasks->lastPage(),
                     'per_page' => $tasks->perPage(),
                     'total' => $tasks->total(),
                 ],
-                'filters' => [
-                    'status' => $request->query('status'),
-                    'project_id' => $request->query('project_id'),
-                ],
             ]);
         }
 
-        return response()->json([
-            'data' => TaskResource::collection(collect($tasks->items()))->resolve(),
+        return Inertia::render('Tasks/Index', [
+            'tasks' => $tasks->items(),
             'meta' => [
                 'current_page' => $tasks->currentPage(),
                 'last_page' => $tasks->lastPage(),
                 'per_page' => $tasks->perPage(),
                 'total' => $tasks->total(),
+            ],
+            'filters' => [
+                'status' => $request->query('status'),
+                'project_id' => $request->query('project_id'),
             ],
         ]);
     }
@@ -80,10 +81,25 @@ class TaskController extends Controller
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
 
-    public function show(Request $request, Task $task): JsonResponse
+    public function show(Request $request, Task $task)
     {
         $this->authorize('view', $task);
-        return (new TaskResource($task))->response();
+
+        // If it's an API request, return JSON
+        if ($request->expectsJson()) {
+            return (new TaskResource($task))->response();
+        }
+
+        // For web requests, return Inertia view with notes
+        $taskNotes = $task->notes()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get(['id', 'content', 'created_at', 'updated_at', 'noteable_type', 'noteable_id']);
+
+        return Inertia::render('Tasks/Show', [
+            'task' => $task->load('project:id,title'),
+            'taskNotes' => $taskNotes,
+        ]);
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse

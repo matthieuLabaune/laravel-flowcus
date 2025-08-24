@@ -53,4 +53,28 @@ class User extends Authenticatable
             'long_break_interval' => 'integer',
         ];
     }
+
+    /**
+     * Get the projects owned by the user.
+     */
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    /**
+     * Get the tasks owned by the user.
+     */
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    /**
+     * Get the pomodoro sessions owned by the user.
+     */
+    public function pomodoroSessions()
+    {
+        return $this->hasMany(PomodoroSession::class);
+    }
 }

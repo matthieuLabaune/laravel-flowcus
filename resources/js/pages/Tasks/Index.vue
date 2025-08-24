@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage, Link } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import Card from '@/components/ui/card/Card.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -87,11 +87,13 @@ function removeTask(t: TaskDto) {
           <Button size="sm" :disabled="creating || !newTitle.trim()">Ajouter</Button>
         </form>
         <ul class="divide-y divide-border rounded border">
-          <li v-for="t in tasks" :key="t.id" class="flex items-center justify-between gap-4 px-3 py-2">
-            <div class="flex flex-col">
-              <span class="text-sm font-medium" :class="t.status === 'done' && 'line-through text-muted-foreground'">{{ t.title }}</span>
+          <li v-for="t in tasks" :key="t.id" class="flex items-center justify-between gap-4 px-3 py-2 hover:bg-muted/50">
+            <div class="flex flex-col flex-1 min-w-0">
+              <Link :href="`/tasks/${t.id}`" class="text-sm font-medium hover:text-primary transition-colors" :class="t.status === 'done' && 'line-through text-muted-foreground'">
+                {{ t.title }}
+              </Link>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 shrink-0">
               <Button v-if="t.status !== 'done'" size="sm" variant="secondary" @click="completeTask(t)">Done</Button>
               <Button size="sm" variant="ghost" @click="removeTask(t)">Suppr</Button>
             </div>

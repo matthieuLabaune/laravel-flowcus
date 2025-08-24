@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage, Link } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import Card from '@/components/ui/card/Card.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -96,15 +96,17 @@ const totalTasks = computed(() => projects.value.reduce((acc, p) => acc + (p.tas
             <span class="text-xs text-muted-foreground">{{ totalTasks }} tasks</span>
           </div>
           <ul class="divide-y divide-border rounded-md border">
-            <li v-for="p in projects" :key="p.id" class="flex items-center justify-between gap-4 px-3 py-2">
-              <div class="flex items-center gap-3">
-                <span class="size-4 rounded-full border" :style="p.color ? ('background:' + p.color) : ''" />
-                <div class="flex flex-col">
-                  <span class="text-sm font-medium">{{ p.name }}</span>
+            <li v-for="p in projects" :key="p.id" class="flex items-center justify-between gap-4 px-3 py-2 hover:bg-muted/50">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <span class="size-4 rounded-full border shrink-0" :style="p.color ? ('background:' + p.color) : ''" />
+                <div class="flex flex-col min-w-0">
+                  <Link :href="`/projects/${p.id}`" class="text-sm font-medium hover:text-primary transition-colors truncate">
+                    {{ p.name }}
+                  </Link>
                   <span class="text-xs text-muted-foreground">{{ p.tasks_count || 0 }} tasks</span>
                 </div>
               </div>
-              <div class="flex flex-col gap-2 items-end w-56">
+              <div class="flex flex-col gap-2 items-end w-56 shrink-0">
                 <div class="flex gap-2" v-if="addingTaskFor !== p.id">
                   <Button variant="secondary" size="sm" @click="startAddTask(p)">+ Task</Button>
                   <Button variant="destructive" size="sm" @click="destroyProject(p)">Delete</Button>
