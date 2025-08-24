@@ -9,10 +9,12 @@ use App\Http\Requests\Notes\UpdateNoteRequest;
 use App\Models\Note;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class NoteController extends Controller
 {
-    public function store(StoreNoteRequest $request): JsonResponse
+    public function store(StoreNoteRequest $request)
     {
         $note = Note::create([
             'user_id' => $request->user()->id,
@@ -21,13 +23,10 @@ class NoteController extends Controller
             'noteable_id' => $request->validated('noteable_id'),
         ]);
 
-        return response()->json([
-            'message' => 'Note created successfully',
-            'note' => $note->load('user'),
-        ], 201);
+        return back()->with('success', 'Note ajoutée avec succès');
     }
 
-    public function update(UpdateNoteRequest $request, Note $note): JsonResponse
+    public function update(UpdateNoteRequest $request, Note $note)
     {
         $this->authorize('update', $note);
 
@@ -35,21 +34,16 @@ class NoteController extends Controller
             'content' => $request->validated('content'),
         ]);
 
-        return response()->json([
-            'message' => 'Note updated successfully',
-            'note' => $note->fresh()->load('user'),
-        ]);
+        return back()->with('success', 'Note mise à jour avec succès');
     }
 
-    public function destroy(Request $request, Note $note): JsonResponse
+    public function destroy(Request $request, Note $note)
     {
         $this->authorize('delete', $note);
 
         $note->delete();
 
-        return response()->json([
-            'message' => 'Note deleted successfully',
-        ]);
+        return back()->with('success', 'Note supprimée avec succès');
     }
 
     public function index(Request $request): JsonResponse
@@ -69,6 +63,48 @@ class NoteController extends Controller
 
         return response()->json([
             'notes' => $notes,
+        ]);
+    }
+
+    public function indexPage(Request $request): Response
+    {
+        $user = $request->user();
+
+        // Get all notes grouped by type
+        $sessionNotes = Note::query()
+            ->where('user_id', $user->id)
+            ->where('noteable_type', 'App\\Models\\PomodoroSession')
+            ->with('noteable')
+            ->latest()
+            ->get();
+
+        $taskNotes = Note::query()
+            ->where('user_id', $user->id)
+            ->where('noteable_type', 'App\\Models\\Task')
+            ->with('noteable')
+            ->latest()
+            ->get();
+
+        $projectNotes = Note::query()
+            ->where('user_id', $user->id)
+            ->where('noteable_type', 'App\\Models\\Project')
+            ->with('noteable')
+            ->latest()
+            ->get();
+
+        return Inertia::render('Notes/Index', [
+            'sessionNotes' => $sessionNotes,
+            'taskNotes' => $taskNotes,
+            'projectNotes' => $projectNotes,
+        ]);
+    }
+
+    public function show(Request $request, Note $note): JsonResponse
+    {
+        $this->authorize('view', $note);
+
+        return response()->json([
+            'note' => $note->load('user'),
         ]);
     }
 }

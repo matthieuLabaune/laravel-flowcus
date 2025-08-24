@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage, Link } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import type { BreadcrumbItem } from '@/types'
 import Card from '@/components/ui/card/Card.vue'
@@ -21,10 +21,19 @@ interface SessionDto {
     paused_seconds?:number;
     last_paused_at?:string|null;
 }
+interface NoteDto {
+    id: number;
+    content: string;
+    created_at: string;
+    updated_at: string;
+    noteable_type: string;
+    noteable_id: number;
+}
 
 const page = usePage()
 const tasks = computed(() => (page.props as any).tasks as TaskDto[] || [])
 const activeSession = computed(() => (page.props as any).activeSession as SessionDto | null || null)
+const sessionNotes = computed(() => (page.props as any).sessionNotes as NoteDto[] || [])
 
 const plannedSeconds = ref(1500)
 const selectedTaskId = ref<number | null>(null)
@@ -168,12 +177,41 @@ function quickAddTask() {
                     </ul>
                 </Card>
 
-                <!-- Session Notes (only when session is active) -->
-                <Card v-if="activeSession" class="lg:col-span-1 p-0">
-                    <NotesPanel
-                        noteable-type="App\\Models\\PomodoroSession"
-                        :noteable-id="activeSession.id"
-                    />
+                <!-- Notes Panel - Always visible -->
+                <Card class="lg:col-span-1 p-0">
+                    <div class="p-4 border-b border-border">
+                        <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase flex items-center justify-between">
+                            Notes rapides
+                            <Button variant="outline" size="sm" as-child>
+                                <Link :href="route('notes.index')" class="text-xs">
+                                    Voir tout
+                                </Link>
+                            </Button>
+                        </h2>
+                    </div>
+
+                    <!-- Session Notes when active -->
+                    <div v-if="activeSession" class="border-b border-border">
+                        <div class="p-3 bg-purple-50 dark:bg-purple-950/30">
+                            <span class="text-xs text-purple-700 dark:text-purple-300 font-medium">Notes de la session active</span>
+                        </div>
+                        <NotesPanel
+                            noteable-type="App\\Models\\PomodoroSession"
+                            :noteable-id="activeSession.id"
+                            :initial-notes="sessionNotes"
+                        />
+                    </div>
+
+                    <!-- General notes area -->
+                    <div v-else class="p-4">
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-8 w-8 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8h16a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p class="mt-2 text-sm text-muted-foreground">Aucune session active</p>
+                            <p class="text-xs text-muted-foreground">Démarrez une session pour prendre des notes</p>
+                        </div>
+                    </div>
                 </Card>
             </div>
         </div>

@@ -26,9 +26,21 @@ Route::get('dashboard', function () {
         ->latest('started_at')
         ->first(['id', 'task_id', 'planned_seconds', 'actual_seconds', 'started_at', 'interruptions_count', 'paused_seconds', 'last_paused_at']);
 
+    // Get notes for active session
+    $sessionNotes = [];
+    if ($activeSession) {
+        $sessionNotes = \App\Models\Note::query()
+            ->where('user_id', $user->id)
+            ->where('noteable_type', 'App\\Models\\PomodoroSession')
+            ->where('noteable_id', $activeSession->id)
+            ->latest()
+            ->get(['id', 'content', 'created_at', 'updated_at', 'noteable_type', 'noteable_id']);
+    }
+
     return Inertia::render('Dashboard', [
         'tasks' => $tasks,
         'activeSession' => $activeSession,
+        'sessionNotes' => $sessionNotes,
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -54,7 +66,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     // Notes CRUD (polymorphic)
-    Route::get('/notes', [NoteController::class, 'index'])->name('notes.index');
+    Route::get('/notes', [NoteController::class, 'indexPage'])->name('notes.index');
+    Route::get('/api/notes', [NoteController::class, 'index'])->name('api.notes.index');
     Route::post('/notes', [NoteController::class, 'store'])->name('notes.store');
     Route::get('/notes/{note}', [NoteController::class, 'show'])->name('notes.show');
     Route::put('/notes/{note}', [NoteController::class, 'update'])->name('notes.update');

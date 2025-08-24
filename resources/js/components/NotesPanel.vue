@@ -21,7 +21,7 @@
     <div v-if="showAddForm" class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
       <form @submit.prevent="addNote">
         <textarea
-          v-model="newNoteContent"
+          v-model="addForm.content"
           placeholder="Écrivez votre note..."
           rows="3"
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white"
@@ -37,10 +37,10 @@
           </button>
           <button
             type="submit"
-            :disabled="!newNoteContent.trim() || isSubmitting"
+            :disabled="!addForm.content.trim() || addForm.processing"
             class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <svg v-if="addForm.processing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -52,19 +52,14 @@
 
     <!-- Notes list -->
     <div class="max-h-96 overflow-y-auto">
-      <div v-if="notes.length === 0 && !isLoading" class="p-8 text-center text-gray-500 dark:text-gray-400">
+      <div v-if="notes.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
         <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8h16a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <p class="mt-2">Aucune note pour le moment</p>
       </div>
 
-      <div v-if="isLoading" class="p-4 space-y-3">
-        <div v-for="i in 3" :key="i" class="animate-pulse">
-          <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-        </div>
-      </div>
+      <!-- Notes list directly -->
 
       <div v-for="note in notes" :key="note.id" class="p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/30">
         <div v-if="editingNoteId === note.id">
@@ -86,7 +81,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="!editingContent.trim() || isSubmitting"
+                :disabled="!updateForm.content.trim() || updateForm.processing"
                 class="px-3 py-1 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:opacity-50"
               >
                 Sauvegarder
@@ -120,7 +115,6 @@
                 @click="deleteNote(note)"
                 class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                 title="Supprimer"
-                :disabled="isSubmitting"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -135,7 +129,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { router, useForm } from '@inertiajs/vue3'
 
 interface Note {
   id: number
@@ -158,151 +153,72 @@ const props = withDefaults(defineProps<Props>(), {
 
 const notes = ref<Note[]>([...props.initialNotes])
 const showAddForm = ref(false)
-const newNoteContent = ref('')
-const isLoading = ref(false)
-const isSubmitting = ref(false)
 const editingNoteId = ref<number | null>(null)
 const editingContent = ref('')
 
-const loadNotes = async () => {
-  isLoading.value = true
-  try {
-    const response = await fetch(`/notes?noteable_type=${props.noteableType}&noteable_id=${props.noteableId}`, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
+// Inertia forms instead of fetch
+const addForm = useForm({
+  content: '',
+  noteable_type: props.noteableType,
+  noteable_id: props.noteableId
+})
 
-    if (response.ok) {
-      const data = await response.json()
-      notes.value = data.notes || []
-    }
-  } catch (error) {
-    console.error('Error loading notes:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
+const updateForm = useForm({
+  content: ''
+})
 
-const addNote = async () => {
-  if (!newNoteContent.value.trim() || isSubmitting.value) return
+const addNote = () => {
+  if (!addForm.content.trim()) return
 
-  isSubmitting.value = true
-  try {
-    const response = await fetch('/notes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
-      },
-      body: JSON.stringify({
-        content: newNoteContent.value,
-        noteable_type: props.noteableType,
-        noteable_id: props.noteableId
-      })
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      notes.value.unshift(data.note)
-      newNoteContent.value = ''
+  addForm.post('/notes', {
+    preserveScroll: true,
+    onSuccess: () => {
+      // Reload the component data or update notes array
+      router.reload({ only: ['notes'] })
+      addForm.reset()
       showAddForm.value = false
-    } else {
-      const errorData = await response.json()
-      console.error('Error adding note:', errorData)
-      alert('Erreur lors de l\'ajout de la note: ' + (errorData.message || 'Erreur inconnue'))
-    }
-  } catch (error) {
-    console.error('Error adding note:', error)
-    alert('Erreur de connexion lors de l\'ajout de la note')
-  } finally {
-    isSubmitting.value = false
-  }
+    },
+  })
 }
 
 const startEdit = (note: Note) => {
   editingNoteId.value = note.id
   editingContent.value = note.content
+  updateForm.content = note.content
+}
+
+const updateNote = (note: Note) => {
+  if (!updateForm.content.trim()) return
+
+  updateForm.put(`/notes/${note.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ['notes'] })
+      cancelEdit()
+    },
+  })
+}
+
+const deleteNote = (note: Note) => {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) return
+
+  router.delete(`/notes/${note.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ['notes'] })
+    }
+  })
+}
+
+const cancelAdd = () => {
+  showAddForm.value = false
+  addForm.reset()
 }
 
 const cancelEdit = () => {
   editingNoteId.value = null
   editingContent.value = ''
-}
-
-const updateNote = async (note: Note) => {
-  if (!editingContent.value.trim() || isSubmitting.value) return
-
-  isSubmitting.value = true
-  try {
-    const response = await fetch(`/notes/${note.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
-      },
-      body: JSON.stringify({
-        content: editingContent.value
-      })
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      const index = notes.value.findIndex(n => n.id === note.id)
-      if (index !== -1) {
-        notes.value[index] = data.note
-      }
-      cancelEdit()
-    } else {
-      const errorData = await response.json()
-      console.error('Error updating note:', errorData)
-      alert('Erreur lors de la modification: ' + (errorData.message || 'Erreur inconnue'))
-    }
-  } catch (error) {
-    console.error('Error updating note:', error)
-    alert('Erreur de connexion lors de la modification')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const deleteNote = async (note: Note) => {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) return
-
-  isSubmitting.value = true
-  try {
-    const response = await fetch(`/notes/${note.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''
-      }
-    })
-
-    if (response.ok) {
-      notes.value = notes.value.filter(n => n.id !== note.id)
-    } else {
-      const errorData = await response.json()
-      console.error('Error deleting note:', errorData)
-      alert('Erreur lors de la suppression: ' + (errorData.message || 'Erreur inconnue'))
-    }
-  } catch (error) {
-    console.error('Error deleting note:', error)
-    alert('Erreur de connexion lors de la suppression')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const cancelAdd = () => {
-  showAddForm.value = false
-  newNoteContent.value = ''
+  updateForm.reset()
 }
 
 const formatDate = (dateString: string) => {
@@ -323,10 +239,4 @@ const formatDate = (dateString: string) => {
     })
   }
 }
-
-onMounted(() => {
-  if (props.initialNotes.length === 0) {
-    loadNotes()
-  }
-})
 </script>
