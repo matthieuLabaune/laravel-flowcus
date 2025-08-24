@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Enums\SessionType;
+use App\Domain\Pomodoro\Exceptions\ActiveSessionExists;
+use App\Domain\Pomodoro\Exceptions\SessionAlreadyFinished;
 use App\Models\PomodoroSession;
 use App\Models\User;
 use App\Services\PomodoroSessionService;
@@ -29,7 +31,7 @@ it('prevents multiple active sessions', function () {
     $service = new PomodoroSessionService();
     $service->startFocus($user, null, 1500);
 
-    expect(fn() => $service->startFocus($user, null, 1500))->toThrow(RuntimeException::class);
+    expect(fn() => $service->startFocus($user, null, 1500))->toThrow(ActiveSessionExists::class);
 });
 
 it('finishes a session and computes actual seconds', function () {
@@ -67,5 +69,5 @@ it('cannot finish twice', function () {
     $session = $service->startFocus($user, null, 1500);
     $service->finish($session);
 
-    expect(fn() => $service->finish($session))->toThrow(RuntimeException::class);
+    expect(fn() => $service->finish($session))->toThrow(SessionAlreadyFinished::class);
 });

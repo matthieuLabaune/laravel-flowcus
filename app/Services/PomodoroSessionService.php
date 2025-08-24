@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\SessionType;
+use App\Domain\Pomodoro\Exceptions\ActiveSessionExists;
+use App\Domain\Pomodoro\Exceptions\InvalidPlannedSeconds;
+use App\Domain\Pomodoro\Exceptions\SessionAlreadyFinished;
 use App\Models\PomodoroSession;
 use App\Models\Task;
 use App\Models\User;
@@ -22,12 +25,12 @@ class PomodoroSessionService
     public function startFocus(User $user, ?Task $task, int $plannedSeconds): PomodoroSession
     {
         if ($plannedSeconds < 60 || $plannedSeconds > 7200) {
-            throw new RuntimeException('Invalid planned seconds.');
+            throw new InvalidPlannedSeconds('planned_seconds must be between 60 and 7200');
         }
 
         $active = $this->activeSession($user);
         if ($active) {
-            throw new RuntimeException('An active session already exists.');
+            throw new ActiveSessionExists('Another active session exists.');
         }
 
         return PomodoroSession::query()->create([
@@ -47,7 +50,7 @@ class PomodoroSessionService
     public function finish(PomodoroSession $session, ?\DateTimeInterface $endOverride = null): PomodoroSession
     {
         if ($session->ended_at) {
-            throw new RuntimeException('Session already finished.');
+            throw new SessionAlreadyFinished('Cannot finish twice.');
         }
 
         // Use current in-memory started_at (original persisted value) to avoid resetting by refresh.
@@ -66,7 +69,7 @@ class PomodoroSessionService
     public function interrupt(PomodoroSession $session): PomodoroSession
     {
         if ($session->ended_at) {
-            throw new RuntimeException('Cannot interrupt finished session.');
+            throw new SessionAlreadyFinished('Cannot interrupt finished session.');
         }
 
         $session->increment('interruptions_count');
