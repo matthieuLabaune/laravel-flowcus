@@ -1,0 +1,22 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background circle -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad1)"/>
+
+  <!-- Head silhouette -->
+  <path d="M32 112C32 98.744 32 85.488 32 72.232C32 64.096 35.216 56.288 40.888 50.616C46.56 44.944 54.368 41.728 62.504 41.728H65.496C73.632 41.728 81.44 44.944 87.112 50.616C92.784 56.288 96 64.096 96 72.232V112H32Z" fill="white"/>
+
+  <!-- Checkmark inside head -->
+  <path d="M50 76L60 86L78 68" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Brain detail -->
+  <circle cx="52" cy="60" r="3" fill="#7c3aed" opacity="0.3"/>
+  <circle cx="76" cy="60" r="3" fill="#7c3aed" opacity="0.3"/>
+</svg>

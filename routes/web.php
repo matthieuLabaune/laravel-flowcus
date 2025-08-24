@@ -75,5 +75,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 });
 
+Route::get('docs', function () {
+    return Inertia::render('Documentation');
+})->name('docs');
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

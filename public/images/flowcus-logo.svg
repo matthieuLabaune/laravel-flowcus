@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Head silhouette -->
+  <path d="M8 28C8 24.686 8 21.372 8 18.058C8 16.024 8.804 14.072 10.222 12.654C11.64 11.236 13.592 10.432 15.626 10.432H16.374C18.408 10.432 20.36 11.236 21.778 12.654C23.196 14.072 24 16.024 24 18.058V28H8Z" fill="#7c3aed"/>
+
+  <!-- Checkmark inside head -->
+  <path d="M12.5 19L15 21.5L19.5 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Brain detail -->
+  <circle cx="13" cy="15" r="1" fill="white" opacity="0.3"/>
+  <circle cx="19" cy="15" r="1" fill="white" opacity="0.3"/>
+</svg>
