@@ -1,6 +1,6 @@
 # Flowcus Product Specification & Technical Plan
 
-Version: 0.1 (Living Document)  
+Version: 0.1 (Living Document)
 Last Updated: 2025-08-24
 
 ---
@@ -20,17 +20,17 @@ Team features, mobile surfaces, real-time presence, freemium gates, push & widge
 
 ---
 ## 3. Domain Model (Initial)
-| Entity | Purpose | Key Fields | Relations |
-|--------|---------|-----------|-----------|
-| User | Auth + settings | name, email, password, pomodoro_length, short_break_length, long_break_length, long_break_interval | hasMany(Task), hasMany(PomodoroSession), hasMany(DailySummary) |
-| Project | Logical grouping | name, color(optional), user_id | belongsTo(User), hasMany(Task) |
-| Task | Unit of planned work | title, description, deadline_at (nullable), status(enum: pending, in_progress, done), project_id (nullable), user_id | belongsTo(User), belongsTo(Project), hasMany(PomodoroSession), hasMany(TaskNote) |
-| TaskNote | Rich note about task (manual) | body (markdown), task_id, user_id | belongsTo(Task), belongsTo(User) |
-| PomodoroSession | Focus or break segment actually executed | task_id (nullable if free-form), user_id, type(enum: focus, short_break, long_break), planned_seconds, actual_seconds, interruptions_count, started_at, ended_at | belongsTo(User), belongsTo(Task) |
-| SessionNote | Post-session reflection | pomodoro_session_id, body | belongsTo(PomodoroSession) |
-| DailySummary | Cached synthesized report | user_id, summary_date, total_focus_seconds, completed_task_ids(json), markdown_body, generated_at | belongsTo(User) |
-| IntegrationAccount (V1) | External connector linkage | user_id, provider(enum: notion, trello,...), access_token(encrypted), refresh_token, expires_at, meta(json) | belongsTo(User) |
-| ImportedItem (V1) | External imported artifact mapping | integration_account_id, external_id, type(task|project|calendar_event), payload(json), mapped_task_id | belongsTo(IntegrationAccount) |
+| Entity                  | Purpose                                  | Key Fields                                                                                                                                                       | Relations                                                                        |
+| ----------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| User                    | Auth + settings                          | name, email, password, pomodoro_length, short_break_length, long_break_length, long_break_interval                                                               | hasMany(Task), hasMany(PomodoroSession), hasMany(DailySummary)                   |
+| Project                 | Logical grouping                         | name, color(optional), user_id                                                                                                                                   | belongsTo(User), hasMany(Task)                                                   |
+| Task                    | Unit of planned work                     | title, description, deadline_at (nullable), status(enum: pending, in_progress, done), project_id (nullable), user_id                                             | belongsTo(User), belongsTo(Project), hasMany(PomodoroSession), hasMany(TaskNote) |
+| TaskNote                | Rich note about task (manual)            | body (markdown), task_id, user_id                                                                                                                                | belongsTo(Task), belongsTo(User)                                                 |
+| PomodoroSession         | Focus or break segment actually executed | task_id (nullable if free-form), user_id, type(enum: focus, short_break, long_break), planned_seconds, actual_seconds, interruptions_count, started_at, ended_at | belongsTo(User), belongsTo(Task)                                                 |
+| SessionNote             | Post-session reflection                  | pomodoro_session_id, body                                                                                                                                        | belongsTo(PomodoroSession)                                                       |
+| DailySummary            | Cached synthesized report                | user_id, summary_date, total_focus_seconds, completed_task_ids(json), markdown_body, generated_at                                                                | belongsTo(User)                                                                  |
+| IntegrationAccount (V1) | External connector linkage               | user_id, provider(enum: notion, trello,...), access_token(encrypted), refresh_token, expires_at, meta(json)                                                      | belongsTo(User)                                                                  |
+| ImportedItem (V1)       | External imported artifact mapping       | integration_account_id, external_id, type(task                                                                                                                   | project                                                                          | calendar_event), payload(json), mapped_task_id | belongsTo(IntegrationAccount) |
 
 ### Enums (PHP backed Enums)
 - TaskStatus: Pending, InProgress, Done
@@ -294,22 +294,22 @@ Strategy objects per format: `MarkdownSummaryExporter`, `CsvSessionsExporter`. C
 
 ---
 ## 18. Risks & Mitigations
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Timer drift in browser tabs | Inaccurate session times | Use server finish timestamp & compute delta; reconcile heartbeat occasionally |
-| Large session aggregation later | Slow analytics | Pre-compute daily summaries now |
-| Integration rate limits (future) | Failed syncs | Backoff + queue jobs with retry & provider-specific pacing |
-| Timezone correctness | Wrong daily boundaries | Store user timezone & compute ranges centrally |
+| Risk                             | Impact                   | Mitigation                                                                    |
+| -------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
+| Timer drift in browser tabs      | Inaccurate session times | Use server finish timestamp & compute delta; reconcile heartbeat occasionally |
+| Large session aggregation later  | Slow analytics           | Pre-compute daily summaries now                                               |
+| Integration rate limits (future) | Failed syncs             | Backoff + queue jobs with retry & provider-specific pacing                    |
+| Timezone correctness             | Wrong daily boundaries   | Store user timezone & compute ranges centrally                                |
 
 ---
 ## 19. Competitive Notes (Focus To-Do vs Flowcus)
-| Aspect | Focus To-Do | Flowcus (Target) |
-|--------|-------------|------------------|
-| Daily Automatic Summary | No native consolidated markdown | Built-in structured markdown export |
-| Integrations | Limited / closed | Open APIs (Notion, Taiga, Trello, Calendar) |
-| PKM Exports | Minimal | 1-click Markdown / CSV / (future) Notion write-back |
-| UX | Legacy look | Modern shadcn-vue + minimal friction |
-| Team visibility | N/A | Planned (V2) live presence / collaboration |
+| Aspect                  | Focus To-Do                     | Flowcus (Target)                                    |
+| ----------------------- | ------------------------------- | --------------------------------------------------- |
+| Daily Automatic Summary | No native consolidated markdown | Built-in structured markdown export                 |
+| Integrations            | Limited / closed                | Open APIs (Notion, Taiga, Trello, Calendar)         |
+| PKM Exports             | Minimal                         | 1-click Markdown / CSV / (future) Notion write-back |
+| UX                      | Legacy look                     | Modern shadcn-vue + minimal friction                |
+| Team visibility         | N/A                             | Planned (V2) live presence / collaboration          |
 
 Modernisation Focus: frictionless timer start (1 click), inline editable tasks, zero modal flows, accessible UI (keyboard + ARIA), dark mode.
 

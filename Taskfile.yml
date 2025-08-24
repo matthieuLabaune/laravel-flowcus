@@ -160,3 +160,18 @@ tasks:
         echo "Primary: http://localhost:8000"
         if grep -q ".docker.local" /etc/hosts; then
           echo "Custom domains:"; grep ".docker.local" /etc/hosts | awk '{print "  http://"$2}' ; fi
+
+  boost-install:
+    desc: "Run artisan boost:install inside container"
+    cmds:
+      - docker-compose exec app php artisan boost:install || true
+
+  boost-mcp:
+    desc: "Start Laravel Boost MCP server (foreground)"
+    cmds:
+      - docker-compose exec app php artisan boost:mcp
+
+  boost-mcp-docs:
+    desc: "List available Boost docs tools (sanity check)"
+    cmds:
+      - docker-compose exec app php artisan boost:docs:cache || true
