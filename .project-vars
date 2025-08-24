@@ -1,0 +1,7 @@
+PROJECT_NAME="laravel-timeline"
+PROJECT_TITLE="Timeline"
+ADMIN_NAME="matthieu"
+ADMIN_EMAIL="matthieu.labaune@gmail.com"
+ADMIN_PASSWORD="password"
+CREATE_GITHUB_REPO="y"
+GITHUB_USERNAME="matthieuLabaune"

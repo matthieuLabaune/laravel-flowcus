@@ -1,0 +1,151 @@
+version: "3"
+
+vars:
+  DEFAULT_DB_NAME: laravel_app
+  DEFAULT_ADMIN_EMAIL: admin@example.com
+  DEFAULT_PROJECT_NAME: my-laravel-app
+
+tasks:
+  help:
+    desc: Show all available tasks
+    cmds:
+      - task --list
+
+  new:
+    desc: Create a new Laravel project (delegated to scripts/new.sh)
+    interactive: true
+    cmds:
+      - bash scripts/new.sh
+
+  dev:
+    desc: Start development environment
+    cmds:
+      - |
+        if ! docker info > /dev/null 2>&1; then
+          echo "❌ Docker is not running. Please start Docker and try again."
+          exit 1
+        fi
+        echo "🚀 Starting development environment..."
+        docker-compose up -d
+        echo "✅ Development server started!"
+        echo "🌐 Application: http://localhost:8000 (ou http://$${APP_HOST:-project}.docker.local si configuré)"
+        echo "📧 Mailpit: http://localhost:8025"
+
+  stop:
+    desc: Stop development environment
+    cmds:
+      - |
+        echo "🛑 Stopping development environment..."
+        docker-compose down
+        echo "✅ Environment stopped"
+
+  restart:
+    desc: Restart development environment
+    cmds:
+      - task: stop
+      - task: dev
+
+  logs:
+    desc: View container logs
+    cmds:
+      - docker-compose logs -f
+
+  shell:
+    desc: Access application shell
+    cmds:
+      - docker-compose exec app bash
+
+  tinker:
+    desc: Access Laravel Tinker
+    cmds:
+      - docker-compose exec app php artisan tinker
+
+  migrate:
+    desc: Run database migrations
+    cmds:
+      - docker-compose exec app php artisan migrate
+
+  migrate-fresh:
+    desc: Fresh migrations with seeding
+    cmds:
+      - docker-compose exec app php artisan migrate:fresh --seed
+
+  test:
+    desc: Run PHP tests
+    cmds:
+      - docker-compose exec app php artisan test
+
+  pint:
+    desc: Run Laravel Pint (code formatting)
+    cmds:
+      - docker-compose exec app ./vendor/bin/pint
+
+  npm-install:
+    desc: Install Node dependencies
+    cmds:
+      - docker-compose exec app npm install
+
+  npm-dev:
+    desc: Run Vite development server
+    cmds:
+      - docker-compose exec app npm run dev
+
+  npm-build:
+    desc: Build assets for production
+    cmds:
+      - docker-compose exec app npm run build
+
+  clean:
+    desc: Clean up Docker containers and volumes
+    cmds:
+      - |
+        echo "🧹 Cleaning up Docker resources..."
+        docker-compose down -v
+        docker system prune -f
+        echo "✅ Cleanup completed"
+
+  status:
+    desc: Show container status
+    cmds:
+      - docker-compose ps
+
+  host-add:
+    desc: "Add an /etc/hosts entry for <name>.docker.local -> 127.0.0.1 (usage: task host-add -- name=timeline)"
+    vars:
+      NAME: "{{.name}}"
+    cmds:
+      - |
+        if [ -z "{{.NAME}}" ]; then
+          echo "Provide a name via -- name=example"; exit 1; fi
+        ENTRY="127.0.0.1 {{.NAME}}.docker.local"
+        if grep -q "^$ENTRY$" /etc/hosts; then
+          echo "✅ Host already present: $ENTRY"; exit 0; fi
+        if [ ! -w /etc/hosts ]; then
+          echo "🔐 Elevation required to modify /etc/hosts"; \
+          echo "$ENTRY" | sudo tee -a /etc/hosts >/dev/null; else echo "$ENTRY" | tee -a /etc/hosts >/dev/null; fi
+        echo "✅ Added: http://{{.NAME}}.docker.local"
+
+  host-remove:
+    desc: "Remove an /etc/hosts entry for <name>.docker.local (usage: task host-remove -- name=timeline)"
+    vars:
+      NAME: "{{.name}}"
+    cmds:
+      - |
+        if [ -z "{{.NAME}}" ]; then
+          echo "Provide a name via -- name=example"; exit 1; fi
+        TMP=$(mktemp)
+        grep -v "{{.NAME}}.docker.local" /etc/hosts > "$TMP"
+        if diff -q /etc/hosts "$TMP" >/dev/null; then
+          echo "ℹ️ No entry found for {{.NAME}}.docker.local"; rm "$TMP"; exit 0; fi
+        if [ ! -w /etc/hosts ]; then
+          sudo cp "$TMP" /etc/hosts; else cp "$TMP" /etc/hosts; fi
+        rm "$TMP"
+        echo "✅ Removed: {{.NAME}}.docker.local"
+
+  url:
+    desc: Show URLs (localhost + optional custom domain)
+    cmds:
+      - |
+        echo "Primary: http://localhost:8000"
+        if grep -q ".docker.local" /etc/hosts; then
+          echo "Custom domains:"; grep ".docker.local" /etc/hosts | awk '{print "  http://"$2}' ; fi
