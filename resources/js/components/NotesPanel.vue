@@ -66,7 +66,7 @@
           <!-- Edit mode -->
           <form @submit.prevent="updateNote(note)">
             <textarea
-              v-model="editingContent"
+              v-model="updateForm.content"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white"
               required
@@ -154,7 +154,6 @@ const props = withDefaults(defineProps<Props>(), {
 const notes = ref<Note[]>([...props.initialNotes])
 const showAddForm = ref(false)
 const editingNoteId = ref<number | null>(null)
-const editingContent = ref('')
 
 // Inertia forms instead of fetch
 const addForm = useForm({
@@ -197,7 +196,6 @@ const addNote = () => {
 
 const startEdit = (note: Note) => {
   editingNoteId.value = note.id
-  editingContent.value = note.content
   updateForm.content = note.content
 }
 
@@ -240,7 +238,6 @@ const cancelAdd = () => {
 
 const cancelEdit = () => {
   editingNoteId.value = null
-  editingContent.value = ''
   updateForm.reset()
 }
 
