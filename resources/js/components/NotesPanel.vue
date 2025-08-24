@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+  <div :class="hideHeader ? 'h-full flex flex-col' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'">
+    <div v-if="!hideHeader" class="p-4 border-b border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white">
           Notes
@@ -21,6 +21,7 @@
     <div v-if="showAddForm" class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
       <form @submit.prevent="addNote">
         <textarea
+          ref="addTextareaRef"
           v-model="addForm.content"
           placeholder="Écrivez votre note..."
           rows="3"
@@ -31,12 +32,14 @@
           <button
             type="button"
             @click="cancelAdd"
-            class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
+            tabindex="0"
+            class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
           >
             Annuler
           </button>
           <button
             type="submit"
+            tabindex="0"
             :disabled="!addForm.content.trim() || addForm.processing"
             class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -51,15 +54,17 @@
     </div>
 
     <!-- Notes list -->
-    <div class="max-h-96 overflow-y-auto">
+    <div
+      ref="scrollContainerRef"
+      class="overflow-y-auto"
+      :style="hideHeader ? 'height: 200px;' : 'max-height: 24rem;'"
+    >
       <div v-if="notes.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
         <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8h16a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <p class="mt-2">Aucune note pour le moment</p>
       </div>
-
-      <!-- Notes list directly -->
 
       <div v-for="note in notes" :key="note.id" class="p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/30">
         <div v-if="editingNoteId === note.id">
@@ -75,14 +80,16 @@
               <button
                 type="button"
                 @click="cancelEdit"
-                class="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
+                tabindex="0"
+                class="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
               >
                 Annuler
               </button>
               <button
                 type="submit"
+                tabindex="0"
                 :disabled="!updateForm.content.trim() || updateForm.processing"
-                class="px-3 py-1 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:opacity-50"
+                class="px-3 py-1 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 Sauvegarder
               </button>
@@ -104,7 +111,8 @@
             <div class="flex items-center gap-1 ml-3">
               <button
                 @click="startEdit(note)"
-                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                tabindex="0"
+                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
                 title="Modifier"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,7 +121,8 @@
               </button>
               <button
                 @click="deleteNote(note)"
-                class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                tabindex="0"
+                class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                 title="Supprimer"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 
 interface Note {
@@ -145,15 +154,21 @@ interface Props {
   noteableType: string
   noteableId: number
   initialNotes?: Note[]
+  hideHeader?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  initialNotes: () => []
+  initialNotes: () => [],
+  hideHeader: false
 })
 
 const notes = ref<Note[]>([...props.initialNotes])
 const showAddForm = ref(false)
 const editingNoteId = ref<number | null>(null)
+
+// Refs pour le focus et scroll
+const addTextareaRef = ref<HTMLTextAreaElement>()
+const scrollContainerRef = ref<HTMLDivElement>()
 
 // Inertia forms instead of fetch
 const addForm = useForm({
@@ -259,4 +274,24 @@ const formatDate = (dateString: string) => {
     })
   }
 }
+
+const toggleAddForm = async () => {
+  showAddForm.value = !showAddForm.value
+
+  // Focus on textarea and scroll to top when opening the form
+  if (showAddForm.value) {
+    await nextTick()
+    if (addTextareaRef.value) {
+      addTextareaRef.value.focus()
+    }
+    if (scrollContainerRef.value) {
+      scrollContainerRef.value.scrollTop = 0
+    }
+  }
+}
+
+// Expose functions for parent component when hideHeader is true
+defineExpose({
+  toggleAddForm
+})
 </script>
