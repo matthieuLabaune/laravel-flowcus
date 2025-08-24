@@ -53,6 +53,6 @@ class Task extends Model
 
     protected function isCompleted(): Attribute
     {
-        return Attribute::get(fn (): bool => $this->status === TaskStatus::Done);
+        return Attribute::get(fn(): bool => $this->status === TaskStatus::Done);
     }
 }

@@ -21,10 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-    'pomodoro_length',
-    'short_break_length',
-    'long_break_length',
-    'long_break_interval',
+        'pomodoro_length',
+        'short_break_length',
+        'long_break_length',
+        'long_break_interval',
     ];
 
     /**
