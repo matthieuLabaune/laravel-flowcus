@@ -8,6 +8,7 @@ import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import Skeleton from '@/components/ui/skeleton/Skeleton.vue'
 import PomodoroRing from '@/components/pomodoro/PomodoroRing.vue'
+import NotesPanel from '@/components/NotesPanel.vue'
 
 interface TaskDto { id:number; title:string; status:string; deadline_at?:string|null; completed_at?:string|null }
 interface SessionDto {
@@ -105,8 +106,8 @@ function quickAddTask() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4">
             <!-- Active Session / Start Panel -->
-            <div class="grid gap-6 md:grid-cols-3">
-                <Card class="md:col-span-1 p-5 gap-4">
+            <div class="grid gap-6 lg:grid-cols-3">
+                <Card class="lg:col-span-1 p-5 gap-4">
                     <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Focus Session</h2>
                     <template v-if="activeSession">
                         <div class="flex flex-col gap-4 items-center">
@@ -142,7 +143,7 @@ function quickAddTask() {
                 </Card>
 
                 <!-- Tasks List -->
-                <Card class="md:col-span-2 p-5 gap-4">
+                <Card class="lg:col-span-1 p-5 gap-4">
                     <div class="flex items-center justify-between">
                         <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Mes Tâches</h2>
                     </div>
@@ -165,6 +166,14 @@ function quickAddTask() {
                             <p class="mt-2">Aucune tâche pour l'instant.</p>
                         </li>
                     </ul>
+                </Card>
+
+                <!-- Session Notes (only when session is active) -->
+                <Card v-if="activeSession" class="lg:col-span-1 p-0">
+                    <NotesPanel
+                        noteable-type="App\\Models\\PomodoroSession"
+                        :noteable-id="activeSession.id"
+                    />
                 </Card>
             </div>
         </div>

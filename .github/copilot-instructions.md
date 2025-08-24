@@ -8,6 +8,7 @@ This is a modern full-stack web application starter kit built with Laravel and V
 - **Frontend**: Vue 3 (Composition API), Shadcn-vue, Tailwind CSS v4, Inertia.js v2, TypeScript
 - **Infrastructure**: Docker, Task (taskfile.dev), Pest v4 testing framework
 - **Analysis**: Laravel Pint, ESLint, PHPStan
+- **Design**: Primary color #7c3aed (purple-600)
 
 ## Development Workflow
 
