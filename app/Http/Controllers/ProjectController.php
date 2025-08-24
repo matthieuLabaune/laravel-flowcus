@@ -39,14 +39,16 @@ class ProjectController extends Controller
         $project = Project::query()->create([
             'user_id' => $request->user()->id,
             'name' => $request->string('name'),
+            'description' => $request->input('description'),
             'color' => $request->input('color'),
         ]);
 
-        if ($request->header('X-Inertia')) {
-            return redirect()->route('projects.index');
+        // Always redirect for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return (new ProjectResource($project))->response()->setStatusCode(201);
         }
 
-        return (new ProjectResource($project))->response()->setStatusCode(201);
+        return redirect()->route('projects.index');
     }
 
     public function show(Request $request, Project $project): JsonResponse|\Inertia\Response
@@ -54,32 +56,50 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
         $project->loadCount('tasks');
 
-        if ($request->header('X-Inertia')) {
-            // Load notes for this project
-            $projectNotes = $project->notes()
-                ->where('user_id', $request->user()->id)
-                ->latest()
-                ->get(['id', 'content', 'created_at', 'updated_at', 'noteable_type', 'noteable_id']);
+        // Load notes for this project
+        $projectNotes = $project->notes()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get(['id', 'content', 'created_at', 'updated_at', 'noteable_type', 'noteable_id']);
 
-            return Inertia::render('Projects/Show', [
-                'project' => $project,
-                'projectNotes' => $projectNotes,
-            ]);
+        // Load tasks for this project
+        $projectTasks = $project->tasks()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get(['id', 'title', 'description', 'status', 'created_at', 'updated_at']);
+
+        // Always return Inertia response for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return (new ProjectResource($project))->response();
         }
 
-        return (new ProjectResource($project))->response();
+        return Inertia::render('Projects/Show', [
+            'project' => $project,
+            'projectNotes' => $projectNotes,
+            'projectTasks' => $projectTasks,
+        ]);
+    }
+
+    public function edit(Request $request, Project $project): \Inertia\Response
+    {
+        $this->authorize('update', $project);
+
+        return Inertia::render('Projects/Edit', [
+            'project' => $project,
+        ]);
     }
 
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('update', $project);
-        $project->fill($request->only(['name', 'color']))->save();
+        $project->fill($request->only(['name', 'description', 'color']))->save();
 
-        if ($request->header('X-Inertia')) {
-            return redirect()->route('projects.index');
+        // Always redirect for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return (new ProjectResource($project))->response();
         }
 
-        return (new ProjectResource($project))->response();
+        return redirect()->route('projects.show', $project);
     }
 
     public function destroy(Request $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -87,10 +107,11 @@ class ProjectController extends Controller
         $this->authorize('delete', $project);
         $project->delete();
 
-        if ($request->header('X-Inertia')) {
-            return redirect()->route('projects.index');
+        // Always redirect for web routes
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return response()->json(null, 204);
         }
 
-        return response()->json(null, 204);
+        return redirect()->route('projects.index');
     }
 }

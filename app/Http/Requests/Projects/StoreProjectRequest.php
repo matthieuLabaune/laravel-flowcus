@@ -12,10 +12,12 @@ class StoreProjectRequest extends FormRequest
     {
         return $this->user() !== null;
     }
+
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'regex:/^#?[0-9a-fA-F]{6}$/'],
         ];
     }
