@@ -9,20 +9,30 @@ use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|\Inertia\Response
     {
         $this->authorize('viewAny', Project::class);
-        $projects = Project::query()->where('user_id', $request->user()->id)
+        $projects = Project::query()
+            ->where('user_id', $request->user()->id)
             ->withCount('tasks')
             ->orderBy('name')
             ->get(['id', 'name', 'color', 'user_id']);
+
+        // If this is an Inertia visit, return the page component.
+        if ($request->header('X-Inertia')) {
+            return Inertia::render('Projects/Index', [
+                'projects' => $projects,
+            ]);
+        }
+
         return response()->json(['data' => $projects]);
     }
 
-    public function store(StoreProjectRequest $request): JsonResponse
+    public function store(StoreProjectRequest $request): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('create', Project::class);
         $project = Project::query()->create([
@@ -30,27 +40,49 @@ class ProjectController extends Controller
             'name' => $request->string('name'),
             'color' => $request->input('color'),
         ]);
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('projects.index');
+        }
+
         return response()->json(['data' => $project], 201);
     }
 
-    public function show(Request $request, Project $project): JsonResponse
+    public function show(Request $request, Project $project): JsonResponse|\Inertia\Response
     {
         $this->authorize('view', $project);
         $project->loadCount('tasks');
+
+        if ($request->header('X-Inertia')) {
+            return Inertia::render('Projects/Show', [
+                'project' => $project,
+            ]);
+        }
+
         return response()->json(['data' => $project]);
     }
 
-    public function update(UpdateProjectRequest $request, Project $project): JsonResponse
+    public function update(UpdateProjectRequest $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('update', $project);
         $project->fill($request->only(['name', 'color']))->save();
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('projects.index');
+        }
+
         return response()->json(['data' => $project]);
     }
 
-    public function destroy(Request $request, Project $project): JsonResponse
+    public function destroy(Request $request, Project $project): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('delete', $project);
         $project->delete();
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('projects.index');
+        }
+
         return response()->json(status: 204);
     }
 }

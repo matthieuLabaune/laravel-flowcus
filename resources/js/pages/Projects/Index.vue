@@ -9,9 +9,7 @@ import { type BreadcrumbItem } from '@/types'
 
 interface ProjectDto { id:number; name:string; color?:string|null; tasks_count?:number }
 const page = usePage()
-// Fallback if project list passed differently
-const initial = ((page.props as any).projects as ProjectDto[]) || []
-const projects = ref<ProjectDto[]>(initial)
+const projects = computed(() => (page.props as any).projects as ProjectDto[] || [])
 
 const name = ref('')
 const color = ref('#8855ff')
@@ -29,14 +27,8 @@ function createProject() {
     onFinish: () => (creating.value = false),
     onSuccess: () => {
       // Reload via XHR to refresh list (simplest for now)
-      router.get(route('projects.index'), {}, {
-        preserveState: false,
-        preserveScroll: true,
-        onSuccess: () => {
-          projects.value = ((usePage().props as any).projects) || []
-          name.value = ''
-        }
-      })
+  // After redirect, Inertia will already have new props
+  name.value = ''
     }
   })
 }
@@ -45,9 +37,6 @@ function destroyProject(p: ProjectDto) {
   if (!confirm('Delete project?')) return
   router.delete(route('projects.destroy', p.id), {
     preserveScroll: true,
-    onSuccess: () => {
-      projects.value = projects.value.filter(x => x.id !== p.id)
-    }
   })
 }
 
