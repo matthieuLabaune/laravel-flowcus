@@ -60,6 +60,17 @@ tasks:
     cmds:
       - docker-compose exec app php artisan tinker
 
+  a:
+    desc: "Run an arbitrary artisan command (usage: task a -- migrate --seed)"
+    cmds:
+      - |
+        if [ -z "{{.CLI_ARGS}}" ]; then
+          echo "ℹ️ Showing artisan help (no command provided)";
+          docker-compose exec app php artisan;
+        else
+          docker-compose exec app php artisan {{.CLI_ARGS}};
+        fi
+
   migrate:
     desc: Run database migrations
     cmds:
