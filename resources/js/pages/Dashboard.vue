@@ -196,7 +196,7 @@ function quickAddTask() {
                             <span class="text-xs text-purple-700 dark:text-purple-300 font-medium">Notes de la session active</span>
                         </div>
                         <NotesPanel
-                            noteable-type="App\\Models\\PomodoroSession"
+                            :noteable-type="'App\\Models\\PomodoroSession'"
                             :noteable-id="activeSession.id"
                             :initial-notes="sessionNotes"
                         />

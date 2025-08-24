@@ -22,12 +22,18 @@ class StoreNoteRequest extends FormRequest
      */
     public function rules(): array
     {
+        $allowedTypes = [
+            'App\\Models\\Task',
+            'App\\Models\\Project',
+            'App\\Models\\PomodoroSession'
+        ];
+
         return [
             'content' => ['required', 'string', 'max:65535'],
             'noteable_type' => [
                 'required',
                 'string',
-                Rule::in(['App\\Models\\Task', 'App\\Models\\Project', 'App\\Models\\PomodoroSession']),
+                Rule::in($allowedTypes),
             ],
             'noteable_id' => ['required', 'integer', 'exists:' . $this->getTableFromType()],
         ];

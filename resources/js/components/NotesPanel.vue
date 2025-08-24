@@ -173,10 +173,24 @@ const addNote = () => {
   addForm.post('/notes', {
     preserveScroll: true,
     onSuccess: () => {
-      // Reload the component data or update notes array
-      router.reload({ only: ['notes'] })
+      // Add the new note directly to the local array
+      const newNote: Note = {
+        id: Date.now(), // Temporary ID until reload
+        content: addForm.content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        noteable_type: addForm.noteable_type,
+        noteable_id: addForm.noteable_id
+      }
+      notes.value.unshift(newNote)
+
       addForm.reset()
       showAddForm.value = false
+
+      // Optional: reload in background to get real data
+      setTimeout(() => {
+        router.reload({ only: ['sessionNotes'] })
+      }, 100)
     },
   })
 }
@@ -193,7 +207,12 @@ const updateNote = (note: Note) => {
   updateForm.put(`/notes/${note.id}`, {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({ only: ['notes'] })
+      // Update the note in the local array
+      const index = notes.value.findIndex(n => n.id === note.id)
+      if (index !== -1) {
+        notes.value[index].content = updateForm.content
+        notes.value[index].updated_at = new Date().toISOString()
+      }
       cancelEdit()
     },
   })
@@ -205,7 +224,11 @@ const deleteNote = (note: Note) => {
   router.delete(`/notes/${note.id}`, {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({ only: ['notes'] })
+      // Remove the note from the local array
+      const index = notes.value.findIndex(n => n.id === note.id)
+      if (index !== -1) {
+        notes.value.splice(index, 1)
+      }
     }
   })
 }
