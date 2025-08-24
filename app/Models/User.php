@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+    'pomodoro_length',
+    'short_break_length',
+    'long_break_length',
+    'long_break_interval',
     ];
 
     /**
@@ -43,6 +47,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pomodoro_length' => 'integer',
+            'short_break_length' => 'integer',
+            'long_break_length' => 'integer',
+            'long_break_interval' => 'integer',
         ];
     }
 }

@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Enums\SessionType;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PomodoroSession extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'task_id',
+        'type',
+        'planned_seconds',
+        'actual_seconds',
+        'interruptions_count',
+        'started_at',
+        'ended_at',
+    ];
+
+    protected $casts = [
+        'type' => SessionType::class,
+        'started_at' => 'datetime',
+        'ended_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(Task::class);
+    }
+}
