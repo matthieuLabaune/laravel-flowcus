@@ -3,7 +3,7 @@
 ## ✅ Fonctionnalités Terminées
 
 ### 🎯 Système Pomodoro (Sessions Focus)
-- [x] Sessions de focus chronométrées (25 min par défaut, personnalisable)
+-### 🔍 Recherche Générale[x] Sessions de focus chronométrées (25 min par défaut, personnalisable)
 - [x] Interface cercle de progression avec timer visuel
 - [x] Boutons Play/Pause/Stop pour contrôler les sessions
 - [x] Association optionnelle des sessions à des tâches
