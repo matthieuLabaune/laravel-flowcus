@@ -25,6 +25,16 @@ task pint                     # Laravel Pint code formatter
 task test                     # Run Pest test suite
 ```
 
+**Artisan Commands**:
+All Laravel artisan commands should be run using `task a --` prefix:
+```bash
+task a -- tinker             # Start Laravel tinker
+task a -- migrate            # Run database migrations
+task a -- make:model User    # Create a new model
+task a -- queue:work         # Start queue worker
+task a -- cache:clear        # Clear application cache
+```
+
 **Docker Environment**:
 - **PHP-FPM**: Main Laravel application
 - **Nginx**: Web server at http://localhost
