@@ -6,11 +6,19 @@ import type { BreadcrumbItem } from '@/types'
 import Card from '@/components/ui/card/Card.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
-import Skeleton from '@/components/ui/skeleton/Skeleton.vue'
 import PomodoroRing from '@/components/pomodoro/PomodoroRing.vue'
 import NotesPanel from '@/components/NotesPanel.vue'
+import TaskDataTable from '@/components/tasks/TaskDataTable.vue'
+import { taskColumns } from '@/components/tasks/TaskColumns'
 
-interface TaskDto { id:number; title:string; status:string; deadline_at?:string|null; completed_at?:string|null }
+interface TaskDto {
+    id: number;
+    title: string;
+    status: 'pending' | 'in_progress' | 'done';
+    priority?: 'low' | 'medium' | 'high';
+    deadline_at?: string | null;
+    completed_at?: string | null;
+}
 interface SessionDto {
     id:number;
     task_id?:number|null;
@@ -35,6 +43,12 @@ const tasks = computed(() => (page.props as any).tasks as TaskDto[] || [])
 const activeSession = computed(() => (page.props as any).activeSession as SessionDto | null || null)
 const sessionNotes = computed(() => (page.props as any).sessionNotes as NoteDto[] || [])
 
+// Convert TaskDto to Task for the datatable
+const tasksForTable = computed(() => tasks.value.map(task => ({
+    ...task,
+    status: task.status as 'pending' | 'in_progress' | 'done'
+})))
+
 const plannedSeconds = ref(1500)
 const selectedTaskId = ref<number | null>(null)
 const starting = ref(false)
@@ -45,9 +59,18 @@ const resuming = ref(false)
 const newTaskTitle = ref('')
 const creatingTask = ref(false)
 
+// Notes panel reference
+const notesPanelRef = ref<InstanceType<typeof NotesPanel> | null>(null)
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
 ]
+
+function openNotesForm() {
+    if (notesPanelRef.value) {
+        notesPanelRef.value.toggleAddForm()
+    }
+}
 
 function startSession() {
     starting.value = true
@@ -114,12 +137,13 @@ function quickAddTask() {
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4">
-            <!-- Active Session / Start Panel -->
-            <div class="grid gap-6 lg:grid-cols-3">
-                <Card class="lg:col-span-1 p-5 gap-4">
+            <!-- Première rangée : Focus Session + Notes Rapides -->
+            <div class="grid gap-6 lg:grid-cols-2">
+                <!-- Focus Session -->
+                <Card class="p-5 gap-4 h-[400px] flex flex-col">
                     <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Focus Session</h2>
                     <template v-if="activeSession">
-                        <div class="flex flex-col gap-4 items-center">
+                        <div class="flex flex-col gap-4 items-center flex-1 justify-center">
                             <PomodoroRing
                               :started-at="activeSession.started_at"
                               :planned-seconds="activeSession.planned_seconds"
@@ -138,7 +162,7 @@ function quickAddTask() {
                         </div>
                     </template>
                     <template v-else>
-                        <form class="flex flex-col gap-3" @submit.prevent="startSession">
+                        <form class="flex flex-col gap-3 flex-1 justify-center" @submit.prevent="startSession">
                             <label class="text-xs font-medium tracking-wide text-muted-foreground">Durée (sec)</label>
                             <Input v-model.number="plannedSeconds" type="number" min="60" max="7200" />
                             <label class="text-xs font-medium tracking-wide text-muted-foreground">Tâche (optionnel)</label>
@@ -151,60 +175,54 @@ function quickAddTask() {
                     </template>
                 </Card>
 
-                <!-- Tasks List -->
-                <Card class="lg:col-span-1 p-5 gap-4">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Mes Tâches</h2>
-                    </div>
-                    <form class="flex gap-2" @submit.prevent="quickAddTask">
-                        <Input v-model="newTaskTitle" placeholder="Nouvelle tâche rapide" class="flex-1" />
-                        <Button :disabled="creatingTask || !newTaskTitle.trim()" size="sm">Ajouter</Button>
-                    </form>
-                    <ul class="divide-y divide-border rounded-md border">
-                        <li v-for="t in tasks" :key="t.id" class="flex items-center justify-between gap-4 px-3 py-2">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-medium" :class="t.status === 'done' && 'line-through text-muted-foreground'">{{ t.title }}</span>
-                                <span v-if="t.deadline_at" class="text-xs text-muted-foreground">Due {{ new Date(t.deadline_at).toLocaleDateString() }}</span>
-                            </div>
-                            <span class="text-xs uppercase tracking-wide rounded bg-secondary px-2 py-1" :class="t.status === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-300' : ''">
-                                {{ t.status }}
-                            </span>
-                        </li>
-                        <li v-if="!tasks.length" class="p-4 text-center text-sm text-muted-foreground">
-                            <Skeleton class="h-4 w-1/2 mx-auto" />
-                            <p class="mt-2">Aucune tâche pour l'instant.</p>
-                        </li>
-                    </ul>
-                </Card>
-
-                <!-- Notes Panel - Always visible -->
-                <Card class="lg:col-span-1 p-0">
-                    <div class="p-4 border-b border-border">
+                <!-- Notes Rapides -->
+                <Card class="h-[400px] flex flex-col">
+                    <div class="p-4 border-b border-border flex-shrink-0">
                         <h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase flex items-center justify-between">
-                            Notes rapides
-                            <Button variant="outline" size="sm" as-child>
-                                <Link :href="route('notes.index')" class="text-xs">
-                                    Voir tout
-                                </Link>
-                            </Button>
+                            <span class="flex items-center gap-2">
+                                Notes rapides
+                                <span class="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 rounded-full px-2 py-0.5 text-xs font-medium">
+                                    {{ activeSession ? sessionNotes.length : 0 }}
+                                </span>
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <Button variant="outline" size="sm" as-child tabindex="0">
+                                    <Link :href="route('notes.index')" class="text-xs">
+                                        Voir tout
+                                    </Link>
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    tabindex="0"
+                                    @click="openNotesForm"
+                                    v-if="activeSession"
+                                    class="focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                >
+                                    Ajouter
+                                </Button>
+                            </div>
                         </h2>
                     </div>
 
                     <!-- Session Notes when active -->
-                    <div v-if="activeSession" class="border-b border-border">
-                        <div class="p-3 bg-purple-50 dark:bg-purple-950/30">
+                    <div v-if="activeSession" class="flex-1 flex flex-col">
+                        <div class="p-3 bg-purple-50 dark:bg-purple-950/30 flex-shrink-0 border-b border-border">
                             <span class="text-xs text-purple-700 dark:text-purple-300 font-medium">Notes de la session active</span>
                         </div>
-                        <NotesPanel
-                            :noteable-type="'App\\Models\\PomodoroSession'"
-                            :noteable-id="activeSession.id"
-                            :initial-notes="sessionNotes"
-                        />
+                        <div class="flex-1">
+                            <NotesPanel
+                                ref="notesPanelRef"
+                                :noteable-type="'App\\Models\\PomodoroSession'"
+                                :noteable-id="activeSession.id"
+                                :initial-notes="sessionNotes"
+                                :hide-header="true"
+                            />
+                        </div>
                     </div>
 
                     <!-- General notes area -->
-                    <div v-else class="p-4">
-                        <div class="text-center py-8">
+                    <div v-else class="flex-1 flex items-center justify-center p-4">
+                        <div class="text-center">
                             <svg class="mx-auto h-8 w-8 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-7 8h16a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -214,6 +232,25 @@ function quickAddTask() {
                     </div>
                 </Card>
             </div>
+
+            <!-- Deuxième rangée : Tâches en DataTable -->
+            <Card class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-lg font-semibold tracking-tight">Mes Tâches</h2>
+                        <p class="text-sm text-muted-foreground">Gérez vos tâches avec tri, filtres et pagination</p>
+                    </div>
+                    <form class="flex gap-2" @submit.prevent="quickAddTask">
+                        <Input v-model="newTaskTitle" placeholder="Nouvelle tâche rapide" class="w-64" />
+                        <Button :disabled="creatingTask || !newTaskTitle.trim()" size="sm">Ajouter</Button>
+                    </form>
+                </div>
+
+                <TaskDataTable
+                    :columns="taskColumns"
+                    :data="tasksForTable"
+                />
+            </Card>
         </div>
     </AppLayout>
 </template>
