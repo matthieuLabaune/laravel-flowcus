@@ -11,11 +11,12 @@ use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class TaskController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|\Inertia\Response
     {
         $this->authorize('viewAny', Task::class);
         $user = $request->user();
@@ -32,6 +33,18 @@ class TaskController extends Controller
         /** @var LengthAwarePaginator $tasks */
         $tasks = $query->paginate(20);
 
+        if ($request->header('X-Inertia')) {
+            return Inertia::render('Tasks/Index', [
+                'tasks' => $tasks->items(),
+                'meta' => [
+                    'current_page' => $tasks->currentPage(),
+                    'last_page' => $tasks->lastPage(),
+                    'per_page' => $tasks->perPage(),
+                    'total' => $tasks->total(),
+                ],
+            ]);
+        }
+
         return response()->json([
             'data' => $tasks->items(),
             'meta' => [
@@ -43,7 +56,7 @@ class TaskController extends Controller
         ]);
     }
 
-    public function store(StoreTaskRequest $request): JsonResponse
+    public function store(StoreTaskRequest $request): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('create', Task::class);
         $task = Task::query()->create([
@@ -55,6 +68,10 @@ class TaskController extends Controller
             'status' => TaskStatus::Pending,
         ]);
 
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('tasks.index');
+        }
+
         return response()->json(['data' => $task], 201);
     }
 
@@ -64,22 +81,32 @@ class TaskController extends Controller
         return response()->json(['data' => $task]);
     }
 
-    public function update(UpdateTaskRequest $request, Task $task): JsonResponse
+    public function update(UpdateTaskRequest $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('update', $task);
         $payload = $request->only(['title', 'description', 'deadline_at', 'project_id']);
         $task->fill($payload)->save();
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('tasks.index');
+        }
+
         return response()->json(['data' => $task]);
     }
 
-    public function destroy(Request $request, Task $task): JsonResponse
+    public function destroy(Request $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('delete', $task);
         $task->delete();
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('tasks.index');
+        }
+
         return response()->json(status: 204);
     }
 
-    public function complete(Request $request, Task $task): JsonResponse
+    public function complete(Request $request, Task $task): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorize('complete', $task);
         if ($task->status !== TaskStatus::Done) {
@@ -87,6 +114,11 @@ class TaskController extends Controller
             $task->completed_at = Carbon::now();
             $task->save();
         }
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('tasks.index');
+        }
+
         return response()->json(['data' => $task]);
     }
 }

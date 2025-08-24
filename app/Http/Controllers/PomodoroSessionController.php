@@ -13,12 +13,13 @@ use App\Models\Task;
 use App\Services\PomodoroSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PomodoroSessionController extends Controller
 {
     public function __construct(private PomodoroSessionService $service) {}
 
-    public function start(StartSessionRequest $request): JsonResponse
+    public function start(StartSessionRequest $request): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
         $task = null;
@@ -32,6 +33,10 @@ class PomodoroSessionController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('dashboard')->setStatusCode(303);
+        }
+
         return response()->json([
             'data' => [
                 'id' => $session->id,
@@ -43,13 +48,17 @@ class PomodoroSessionController extends Controller
         ], 201);
     }
 
-    public function finish(Request $request, PomodoroSession $session): JsonResponse
+    public function finish(Request $request, PomodoroSession $session): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorizeSession($request, $session);
         try {
             $this->service->finish($session);
         } catch (SessionAlreadyFinished $e) {
             return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('dashboard')->setStatusCode(303);
         }
 
         return response()->json([
@@ -61,13 +70,17 @@ class PomodoroSessionController extends Controller
         ]);
     }
 
-    public function interrupt(Request $request, PomodoroSession $session): JsonResponse
+    public function interrupt(Request $request, PomodoroSession $session): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $this->authorizeSession($request, $session);
         try {
             $this->service->interrupt($session);
         } catch (SessionAlreadyFinished $e) {
             return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('dashboard')->setStatusCode(303);
         }
 
         return response()->json([
