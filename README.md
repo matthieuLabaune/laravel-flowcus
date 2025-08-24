@@ -237,3 +237,4 @@ MIT License
 ---
 
 **Fait avec ❤️ pour des démarrages de projets rapides et efficaces**
+# laravel-flowcus
