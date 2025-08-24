@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 
 // Additional seeders
 use Database\Seeders\UserSeeder;
+use Database\Seeders\ProjectSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,6 +18,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
+            ProjectSeeder::class,
         ]);
     }
 }

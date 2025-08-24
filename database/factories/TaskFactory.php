@@ -28,4 +28,12 @@ class TaskFactory extends Factory
             'completed_at' => null,
         ];
     }
+
+    public function done(): self
+    {
+        return $this->state(fn() => [
+            'status' => TaskStatus::Done,
+            'completed_at' => now(),
+        ]);
+    }
 }
